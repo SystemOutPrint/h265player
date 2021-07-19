@@ -95,7 +95,9 @@ class TsDemux {
     let streamType = data.stream_type
     let pes = data.pes || {}
     switch (streamType) {
-      //h265
+      // h264
+      case 27:
+      // h265
       case 36:
         this.videoQueue(pes)
         break

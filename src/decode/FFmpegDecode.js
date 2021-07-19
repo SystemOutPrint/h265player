@@ -1,3 +1,5 @@
+import { throwError } from "../error/ThrowError"
+
 /**
  * @copyright: Copyright (C) 2019
  * @desc: wasm methods to decode
@@ -10,7 +12,7 @@ export default class FFmpegDecode {
     // In case multiple frames are decoded (flush)
     this.result = []
   }
-  openDecode() {
+  openDecode(requireHevc) {
     let that = this
     let videoCallback = Module.addFunction(function(
       addr_y,
@@ -39,13 +41,21 @@ export default class FFmpegDecode {
       }
       that.result.push(obj)
     })
-    Module._openDecoder(videoCallback, 1)
+    Module._openDecoder(0, videoCallback, 2)
   }
-  decodeData(pes, pts) {
+  decodeData(pes, pts, dts) {
     let fileSize = pes.length
     let cacheBuffer = Module._malloc(fileSize)
     Module.HEAPU8.set(pes, cacheBuffer)
-    Module._decodeData(cacheBuffer, fileSize, pts)
+    let ret = Module._decodeData(cacheBuffer, fileSize, pts, dts)
+    if (ret == 8) {
+      this.openDecode(true)
+      ret = Module._decodeData(cacheBuffer, fileSize, pts, dts)
+      console.log("h264 fallback to h265, ret = " + ret)
+    } else if (ret > 0) {
+      console.error("h264 fallback to h265, ret = " + ret)
+      throwError("decode failed! ret = " + ret)
+    }
     Module._free(cacheBuffer)
   }
   flush() {
@@ -54,7 +64,7 @@ export default class FFmpegDecode {
         this.decode.getDecodeYUV()
     }
   }
-  closeDecode() {
+  closeDecode() { 
     Module._closeDecoder()
   }
   getYUV() {

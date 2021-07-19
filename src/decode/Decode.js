@@ -7,7 +7,12 @@
 import { AV_TIME_BASE_Q } from '../config/Config.js'
 import FFmpegDecode from './FFmpegDecode'
 import PCWDecode from './PCWDecode'
+import Logger from '../toolkit/Logger'
+
 class Decode {
+
+  logger = null
+
   constructor() {
     this.p = null
     this.ptsList = []
@@ -18,7 +23,9 @@ class Decode {
     this.status = false
     this.yuvArray = []
     this.decodeTool = null
+    this.logger = new Logger("Decode.js")
   }
+
   loadWASM(event) {
     let libPath = event.data.libPath
     self.Module = {
@@ -35,7 +42,7 @@ class Decode {
       } else {
         self.decode.decodeTool = new PCWDecode(self.decode, this.event)
       }
-      self.decode.openDecode()
+      self.decode.openDecode(false)
       self.decode.onWasmLoaded()
     }
   }
@@ -58,17 +65,42 @@ class Decode {
   }
   //receive data and start decode
   push(dataArray) {
-    dataArray.forEach(data => {
-      let pts = data.PTS
-      let pes = data.data_byte
-      let partEnd = data.partEnd
-      let lastTS = data.lastTS
-      let ptsList = this.ptsList
-      this.insertSort(ptsList, parseInt(pts * AV_TIME_BASE_Q * 1000))
-      this.decodeTool.decodeData(pes, pts, this.p)
+    let ptsList = this.ptsList
+    dataArray.forEach((data, index) => {
+      let pts, pes, partEnd, lastTS, previousLength = 0
+      if (data.hasOwnProperty('payload')) {
+        let start = 0, end = 4;
+        while (start < data.payload.length) { 
+          let lengthArr = data.payload.subarray(start, end)
+          let length = lengthArr[0] << 24 | lengthArr[1] << 16 | lengthArr[2] << 8 | lengthArr[3]
+          let _pes = data.payload.subarray(end, end + length)
+          let _previousPes = pes
+          pes = new Uint8Array(previousLength + 4 + length)
+          if (_previousPes != null) {
+            pes.set(_previousPes)
+          }
+          pes.set(new Uint8Array([0, 0, 0, 1]), previousLength)
+          pes.set(_pes, 4 + previousLength)
+          start = end + length
+          end = start + 4
+          previousLength = pes.length
+        }
+        pts = data.pts
+        partEnd = index == dataArray.length - 1
+        lastTS = false
+        this.insertSort(ptsList, pts)
+      } else {
+        pts = data.PTS
+        pes = data.data_byte
+        partEnd = data.partEnd
+        lastTS = data.lastTS
+        this.insertSort(ptsList, parseInt(pts * AV_TIME_BASE_Q * 1000))
+      }
+      let ret = this.decodeTool.decodeData(pes, pts, this.p)
       if (this.decodeTool.checkData(this.p)) {
         this.getDecodeYUV(this.p, partEnd, lastTS)
       }
+      this.logger.info("decode", "flvdemux", "pts", pts)
     })
   }
   getDecodeYUV(p, partEnd, lastTS) {

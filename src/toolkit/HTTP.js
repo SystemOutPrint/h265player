@@ -140,7 +140,7 @@ function handleResponse(response, fileType) {
   const reader = clone.body.getReader()
   let bytesReceived = 0
   const fetchDone = () => {
-    if (fileType === 'ts' || fileType === 'video') {
+    if (fileType === 'ts' || fileType === 'video' || fileType === 'flv') {
       return parseResponse(response, 'blob')
     }
     if (type.includes('json')) return parseResponse(response, 'json')
@@ -330,7 +330,7 @@ class HTTP {
     }
     if (data && data.body) {
       postData.data = data.body
-      if (fileType === 'ts' || fileType === 'video') {
+      if (fileType === 'ts' || fileType === 'video' || fileType === 'flv') {
         postData.arrayBuffer = await blob2ArrayBuffer(postData.data)
       }
       if (postData.arrayBuffer) {

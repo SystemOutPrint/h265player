@@ -153,11 +153,12 @@ export default class AudioPlayer extends BaseClass {
     return this.player.paused
   }
   send(data) {
-    if (!data.PTS) {
+    let dataPts = data.hasOwnProperty('PTS') ? data.PTS : data.pts
+    if (!dataPts) {
       this.need = false;
       this.events.emit(Events.AudioPlayerDataReady);
       return;
-    } 
+    }
     this.need = true;
     if (!this.audioDecoder) {
       this.logger.error('send', 'audioDecoder is:', this.audioDecoder)
@@ -179,13 +180,14 @@ export default class AudioPlayer extends BaseClass {
       this.offset = data.start
     }
 
-    if (data.PTS > this.currentPTS) {
+    if (dataPts > this.currentPTS) {
       if (!this.lastData) {
         this.lastData = data
         return
       } else {
         //get the audio packekt duration
-        this.lastData.duration = data.PTS - this.lastData.PTS
+        let lastDataPts = this.lastData.hasOwnProperty('PTS') ? this.lastData.PTS : this.lastData.pts
+        this.lastData.duration = dataPts - lastDataPts
       }
       this.feed(this.lastData)
       //record the previous audio duration
@@ -194,15 +196,31 @@ export default class AudioPlayer extends BaseClass {
     }
   }
   feed(data) {
+    let dataPts, dataBytes
+    if (data.hasOwnProperty('PTS')) {
+      dataPts = data.PTS
+      dataBytes = data.data_byte
+    } else {
+      dataPts = data.pts
+      dataBytes = data.payload
+    }
     this.audioDecoder.feed({
-      audio: data.data_byte,
+      audio: dataBytes,
       duration: data.duration
     })
-    this.currentPTS = data.PTS
+    this.currentPTS = dataPts
   }
   format(data) {
-    if (data && data.data_byte) {
-      data.start = data.PTS
+    let dataPts, dataBytes
+    if (data.hasOwnProperty('PTS')) {
+      dataPts = data.PTS
+      dataBytes = data.data_byte
+    } else {
+      dataPts = data.pts
+      dataBytes = data.payload
+    }
+    if (data && dataBytes) {
+      data.start = dataPts
     }
     return data
   }

@@ -19,7 +19,7 @@ export default class DataProcessorController extends BaseClass {
   }
   init() {
     let type = this.type
-    if (type == 'ts') {
+    if (type == 'ts' || type == 'flv') {
       this.initNornalWorker()
     }
     this.bindEvent()
@@ -74,7 +74,7 @@ export default class DataProcessorController extends BaseClass {
       type: 'flush'
     })
   }
-  loadjs() {
+  loadjs(isHevc) {
     this.processor.postMessage({
       type: 'loadwasm',
       libPath: this.libPath
@@ -111,6 +111,7 @@ export default class DataProcessorController extends BaseClass {
     if (data && data.arrayBuffer) {
       this.processor.postMessage({
         type: 'startDemux',
+        mediaType: this.type,
         data: data.arrayBuffer,
         isLast: this.isLast
       }, [data.arrayBuffer.buffer])

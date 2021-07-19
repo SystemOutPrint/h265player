@@ -157,7 +157,7 @@ class Player extends BaseClass {
   }
   setProcessorController() {
     this.processController = new DataProcessorController({
-      type: 'ts',
+      type: this.options.type == 'MANIFEST' ? 'flv' : 'ts',
       libPath: this.#libPath,
       events: this.options.events,
       player: this
@@ -350,6 +350,7 @@ class Player extends BaseClass {
    * @description Change the source of the video to play*/
   changeSrc (url, callback) {
     this.pause()
+    this.loaderController.exeLoader.options.sourceURL = url
     this.events.emit(Events.ControlBarPauseLoading, this)
     this.events.emit(Events.PlayerChangeSrc, this)
     this.changing = true

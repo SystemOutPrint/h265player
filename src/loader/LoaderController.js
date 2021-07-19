@@ -9,12 +9,14 @@
 
 import BaseController from '../base/BaseController'
 import HLSLoader from './HLSLoader'
+import ManifestLoader from './ManifestLoader'
 import { state } from '../config/LoaderConfig'
 import Events from '../config/EventsConfig'
 
 const LoadersEnum = {
   // HLS, MP4, DASH
-  'HLS': HLSLoader
+  'HLS': HLSLoader,
+  'MANIFEST': ManifestLoader
 }
 
 class LoaderController extends BaseController {

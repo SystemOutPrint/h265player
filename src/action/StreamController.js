@@ -158,7 +158,8 @@ export default class StreamController extends BaseClass {
       this.audioPlayer.send({})
     }
     dataArray.forEach((data) => {
-      if (data.PTS >= this.player.currentTime || data.audioEnd) {
+      let dataPts = data.hasOwnProperty('PTS') ? data.PTS : data.pts
+      if (dataPts >= this.player.currentTime || data.audioEnd) {
         if (!this.player.receiveAACTime && this.player.seeking) {
           this.player.receiveAACTime = Date.now()
         }
